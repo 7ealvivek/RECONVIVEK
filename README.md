@@ -1,3 +1,5 @@
+requirments 1 python3, amass ,subfinder, notify , rustscan , httpx , tqdm
+
 
 pip install tqdm
 
