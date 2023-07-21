@@ -4,14 +4,15 @@ import sys
 import subprocess
 import os
 from tqdm import tqdm
+import select
 
 def run_command(command, desc):
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    for line in tqdm(iterable=process.stdout.readline, desc=desc, unit='line'):
-        if line == '' and process.poll() is not None:
-            break
-    process.stdout.close()
-    return process.wait()
+    out, err = process.communicate()
+    if err:
+        print(f"Error in running command: {err}")
+        return -1
+    return process.returncode
 
 def get_subdomains(target, output_dir):
     if os.path.isfile(target):
@@ -79,7 +80,7 @@ def prompt_tool_choice(timeout=10):
 
 def main():
     if len(sys.argv) != 2:
-        print("Usage: python3 subdomain_port_scan.py <path_to_target_or_target_file>")
+        print("Usage: python3 GG.py <path_to_target_or_target_file>")
         sys.exit(1)
 
     target_input = sys.argv[1]
