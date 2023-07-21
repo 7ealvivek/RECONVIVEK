@@ -3,7 +3,6 @@
 import sys
 import subprocess
 import os
-import notify2
 
 def get_subdomains(target):
     subfinder_cmd = f"subfinder -d {target} -all -config subfinder_config.yaml -o subfinder_output.txt"
@@ -43,26 +42,20 @@ def notify_new_subdomain_and_ports(subdomains, new_ports):
         previous_subdomains = set()
 
     new_subdomains = set(subdomains) - previous_subdomains
-    if new_subdomains or new_ports:
-        notify2.init("New Subdomains and Ports Discovered")
-        notification_text = ""
-        if new_subdomains:
-            notification_text += f"New subdomains discovered: {', '.join(new_subdomains)}\n"
-        if new_ports:
-            notification_text += f"New open ports discovered: {', '.join(map(str, new_ports))}"
-        n = notify2.Notification("New Subdomains and Ports Discovered", notification_text)
-        n.show()
+
+    if new_subdomains:
+        for subdomain in new_subdomains:
+            # Use the 'notify' tool to send a separate notification for each new subdomain
+            notify_cmd = f"notify -title 'New Subdomain Discovered' -message '{subdomain}'"
+            os.system(notify_cmd)
+
+    if new_ports:
+        # Use the 'notify' tool to send a notification for new open ports
+        notify_cmd = f"notify -title 'New Open Ports Discovered' -message 'New open ports: {', '.join(map(str, new_ports))}'"
+        os.system(notify_cmd)
 
     with open("previous_subdomains.txt", "w") as f:
         f.write("\n".join(subdomains))
-
-def notify_desktop(title, message):
-    try:
-        notify2.init("Bug Bounty Script")
-        notification = notify2.Notification(title, message)
-        notification.show()
-    except Exception as e:
-        print(f"Error while sending notification: {e}")
 
 def main():
     if len(sys.argv) != 2:
@@ -88,7 +81,7 @@ def main():
         subdomains = combine_subdomains()
 
         new_ports = run_rustscan(subdomains)
-        notify_desktop(f"New Subdomains and Ports Discovered for {target}", f"Subdomains: {', '.join(subdomains)}\nPorts: {', '.join(map(str, new_ports))}")
+        notify_new_subdomain_and_ports(subdomains, new_ports)
 
         run_httpx_scan(subdomains)
 
