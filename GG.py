@@ -3,6 +3,15 @@
 import sys
 import subprocess
 import os
+from tqdm import tqdm
+
+def run_command(command, desc):
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    for line in tqdm(iterable=process.stdout.readline, desc=desc, unit='line'):
+        if line == '' and process.poll() is not None:
+            break
+    process.stdout.close()
+    return process.wait()
 
 def get_subdomains(target, output_dir):
     if os.path.isfile(target):
@@ -13,8 +22,8 @@ def get_subdomains(target, output_dir):
         amass_cmd = f"amass enum -passive -norecursive -noalts -d {target} -config amass_config.ini -o {output_dir}/amass_output.txt"
     
     subfinder_cmd = f"subfinder -d {target} -all -config subfinder_config.yaml -o {output_dir}/subfinder_output.txt"
-    subprocess.run(subfinder_cmd, shell=True)
-    subprocess.run(amass_cmd, shell=True)
+    run_command(subfinder_cmd, desc="Running Subfinder")
+    run_command(amass_cmd, desc="Running Amass")
 
 def combine_subdomains(output_dir):
     all_subdomains = set()
