@@ -1,3 +1,8 @@
+
+pip install tqdm
+
+
+
 # RECON-FOR-VPS
 RECON
 
