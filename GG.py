@@ -16,12 +16,12 @@ def run_command(command, desc):
 def get_subdomains(target, output_dir):
     if os.path.isfile(target):
         # Use amass to enumerate subdomains from a file
-        amass_cmd = f"amass enum -passive -norecursive -noalts -df {target} -config amass_config.ini -o {output_dir}/amass_output.txt"
+        amass_cmd = f"amass enum -passive -norecursive -noalts -df {target} -config /home/kali/config.ini -o {output_dir}/amass_output.txt"
     else:
         # Use amass to enumerate subdomains from a single domain
-        amass_cmd = f"amass enum -passive -norecursive -noalts -d {target} -config amass_config.ini -o {output_dir}/amass_output.txt"
+        amass_cmd = f"amass enum -passive -norecursive -noalts -d {target} -config /home/kali/config.ini -o {output_dir}/amass_output.txt"
     
-    subfinder_cmd = f"subfinder -d {target} -all -config subfinder_config.yaml -o {output_dir}/subfinder_output.txt"
+    subfinder_cmd = f"subfinder -d {target} -all -config /root/.config/subfinder/provider-config.yaml -o {output_dir}/subfinder_output.txt"
     run_command(subfinder_cmd, desc="Running Subfinder")
     run_command(amass_cmd, desc="Running Amass")
 
