@@ -42,7 +42,7 @@ def combine_subdomains(output_dir):
     return sorted_subdomains
 
 def run_httpx_scan(subdomains, output_dir):
-    httpx_cmd = f"httpx -l {output_dir}/httpx_subdomains.txt -ports 80,443 -title -o {output_dir}/httpx_output.txt"
+    httpx_cmd = f"httpx -l {output_dir}/httpx_subdomains.txt -ports 80,443 -title | tee {output_dir}/httpx_output.txt"
     with open(f"{output_dir}/httpx_subdomains.txt", "w") as f:
         f.write("\n".join(subdomains))
     subprocess.run(httpx_cmd, shell=True)
@@ -51,21 +51,31 @@ def run_rustscan(subdomains, output_dir):
     with open(f"{output_dir}/sorted_subdomains.txt", "w") as f:
         f.write("\n".join(subdomains))
 
-    rustscan_cmd = f"rustscan -a {output_dir}/sorted_subdomains.txt -r 1000-65000 --ulimit 10000"
+    rustscan_cmd = f"rustscan -a {output_dir}/sorted_subdomains.txt -r 1000-65000 --ulimit 10000 | tee {output_dir}/rustscan_output.txt"
     result = subprocess.check_output(rustscan_cmd, shell=True, universal_newlines=True)
     new_ports = set(map(int, result.strip().splitlines()[1:]))
 
-    with open(f"{output_dir}/rustscan_output.txt", "w") as f:
-        f.write(result)
-
     return new_ports
 
-def notify_desktop(title, message):
-    try:
-        notify_cmd = f"notify -title '{title}' -message '{message}'"
-        os.system(notify_cmd)
-    except Exception as e:
-        print(f"Error while sending notification: {e}")
+def prompt_tool_choice(timeout=10):
+    print("What tool(s) do you want to use next?\n"
+          "1. httpx\n"
+          "2. rustscan\n"
+          "3. Both httpx and rustscan\n"
+          "4. None (Exit)")
+
+    rlist, _, _ = select.select([sys.stdin], [], [], timeout)
+    if rlist:
+        choice = sys.stdin.readline().strip()
+    else:
+        print(f"No response in {timeout} seconds. Auto-selecting option 2 (rustscan).")
+        choice = '2'
+
+    if choice in ('1', '2', '3', '4'):
+        return choice
+    else:
+        print("Invalid choice. Auto-selecting option 2 (rustscan).")
+        return '2'
 
 def main():
     if len(sys.argv) != 2:
@@ -92,11 +102,13 @@ def main():
         get_subdomains(target, output_dir)
         subdomains = combine_subdomains(output_dir)
 
-        new_ports = run_rustscan(subdomains, output_dir)
-        notify_desktop(f"New Subdomains and Ports Discovered for {target}",
-                       f"Subdomains: {', '.join(subdomains)}\nPorts: {', '.join(map(str, new_ports))}")
+        print(f"Subdomains sorted and saved in '{output_dir}/sorted_subdomains.txt'.")
 
-        run_httpx_scan(subdomains, output_dir)
+        choice = prompt_tool_choice()
+        if choice == '1' or choice == '3':
+            run_httpx_scan(subdomains, output_dir)
+        if choice == '2' or choice == '3':
+            run_rustscan(subdomains, output_dir)
 
         print(f"Scan completed for target domain: {target}\n")
 
