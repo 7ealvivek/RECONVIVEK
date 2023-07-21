@@ -1,8 +1,11 @@
 requirments 1 python3, amass ,subfinder, notify , rustscan , httpx , tqdm
 
-
 pip install tqdm
 
+ edit your config file
+-config /home/kali/config.ini
+
+-config /root/.config/subfinder/provider-config.yaml
 
 
 # RECON-FOR-VPS
