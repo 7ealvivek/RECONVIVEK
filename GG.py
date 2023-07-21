@@ -6,12 +6,18 @@ import os
 from tqdm import tqdm
 import select
 
-def run_command(command, desc):
+def run_command(command, desc, timeout=600):
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    out, err = process.communicate()
-    if err:
-        print(f"Error in running command: {err}")
-        return -1
+    try:
+        for line in tqdm(iterable=process.stdout.readline, desc=desc, unit='line', ncols=100, dynamic_ncols=True):
+            if line == '' and process.poll() is not None:
+                break
+        process.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.communicate()
+        print(f"Process '{desc}' exceeded the timeout of {timeout} seconds and was terminated.")
+
     return process.returncode
 
 def get_subdomains(target, output_dir):
