@@ -9,8 +9,8 @@ import select
 def run_command(command, desc, timeout=600):
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     try:
-        for line in tqdm(iterable=process.stdout.readline, desc=desc, unit='line', ncols=100, dynamic_ncols=True):
-            if line == '' and process.poll() is not None:
+        for line in tqdm(iterable=iter(process.stdout.readline, b''), desc=desc, unit='line', ncols=100, dynamic_ncols=True):
+            if process.poll() is not None:
                 break
         process.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
@@ -28,7 +28,7 @@ def get_subdomains(target, output_dir):
         # Use amass to enumerate subdomains from a single domain
         amass_cmd = f"amass enum -passive -norecursive -noalts -d {target} -config /home/kali/config.ini -o {output_dir}/amass_output.txt"
     
-    subfinder_cmd = f"subfinder -d {target} -all -o {output_dir}/subfinder_output.txt"
+    subfinder_cmd = f"subfinder -d {target} -all -config /root/.config/subfinder/config.yaml -o {output_dir}/subfinder_output.txt"
     run_command(subfinder_cmd, desc="Running Subfinder")
     run_command(amass_cmd, desc="Running Amass")
 
@@ -87,7 +87,7 @@ def prompt_tool_choice(timeout=10):
 
 def main():
     if len(sys.argv) != 2:
-        print("Usage: python3 GG.py <path_to_target_or_target_file>")
+        print("Usage: python3 Lord.py <path_to_target_or_target_file>")
         sys.exit(1)
 
     target_input = sys.argv[1]
@@ -123,11 +123,15 @@ def main():
                 run_rustscan(subdomains, output_dir)
             elif choice == '4':
                 rustscan_cmd = f"rustscan -a {output_dir}/sorted_subdomains.txt --ulimit 10000 --top | tee {output_dir}/rustscan_output_top.txt"
-                run_command(rustscan_cmd, desc="Running RustScan (Top ports)")
-            elif choice == '5':
+                result = subprocess.check_output(rustscan_cmd, shell=True, universal_newlines=True)
+                new_ports = set(map(int, result.strip().splitlines()[1:]))
+                print(f"Top ports scan completed for target domain: {target}\n")
                 break
+            elif choice == '5':
+                print("Exiting.")
+                sys.exit(0)
             else:
-                print("Invalid choice. Please select again.")
+                print("Invalid choice. Please choose again.\n")
 
         print(f"Scan completed for target domain: {target}\n")
 
